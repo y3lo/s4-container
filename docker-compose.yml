@@ -1,0 +1,66 @@
+version: '3'
+services:
+    web:
+        container_name: "web"
+        image: nginx:alpine
+        volumes:
+            - "./etc/nginx/default.conf:/etc/nginx/conf.d/default.conf"
+            - "./etc/ssl:/etc/ssl"
+            - "./web:/var/www/html"
+            - "./etc/nginx/default.template.conf:/etc/nginx/conf.d/default.template"
+        ports:
+            - "8080:80"
+        env_file:
+            - ".env"
+        environment:
+            - NGINX_HOST=${NGINX_HOST}
+            - NGINX_PORT=${NGINX_PORT}
+        command: /bin/sh -c "envsubst '$$NGINX_HOST' < /etc/nginx/conf.d/default.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+        # restart: unless-stopped
+        depends_on:
+            - php
+            - postgresdb
+            
+    varnish:
+        build:
+            context: .
+            dockerfile: ./.docker/varnish/Dockerfile
+        ports:
+            - "12132:80"
+        depends_on:
+            - web
+        links:
+            - web
+        volumes:
+            - ./.docker/varnish/default.vcl:/etc/varnish/default.vcl
+        restart: unless-stopped
+
+    php:
+        image: nanoninja/php-fpm:${PHP_VERSION}
+        restart: unless-stopped
+        volumes:
+            - "./etc/php/php.ini:/usr/local/etc/php/conf.d/php.ini"
+            - "./web:/var/www/html"
+        env_file:
+            - ".env"
+            
+    composer:
+        image: "composer"
+        volumes:
+            - "./web:/app"
+        command: install
+
+    postgresdb:
+        image: postgres:${POSTGRES_VERSION}
+        container_name: ${POSTGRES_HOST}
+        restart: unless-stopped
+        env_file:
+            - ".env"
+        environment:
+            - POSTGRES_DB=${POSTGRES_NAME}
+            - POSTGRES_USER=${POSTGRES_USER}
+            - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+        ports:
+            - "5432:5432"
+        volumes:
+            - ./.docker/conf/postgres/:/docker-entrypoint-initdb.d/
