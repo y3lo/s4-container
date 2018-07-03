@@ -64,7 +64,10 @@ composer-post-install:
 	@docker exec -i $(shell docker-compose ps -q php) composer run-script post-install-cmd
 
 composer-up:
-	@docker run --rm -v $(shell pwd)/web/:/app composer update --ignore-platform-reqs --no-scripts
+	@docker run --rm -v $(shell pwd)/web/:/app composer update
+
+composer-install:
+	@docker run --rm -v $(shell pwd)/web/:/app composer install
 
 docker-up:
 	docker-compose up -d
@@ -104,6 +107,9 @@ resetOwner:
 
 fixPermissions:
 	@sudo chmod -Rf 777 ./web/var/
+
+fixReadWrite:
+	@sudo chmod -Rf 777 ./web/
 	
 root:
 	@docker exec -it -u root $$(docker-compose ps -q php) /bin/bash
