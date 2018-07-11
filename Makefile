@@ -23,10 +23,10 @@ help:
 	@echo "  mysql-restore       Restore backup of all databases"
 
 init:
-	@git clone git@github.com:ShershnevUA/s4-api.git web
 	@make docker-up
 	@make composer-up
 	@make php-composer-install
+	@docker exec -i $(shell docker-compose ps -q php) composer create-project symfony/skeleton web
 	@make php-install-ext
 	@make composer-post-install
 	@sudo chmod -Rf 777 ./web
